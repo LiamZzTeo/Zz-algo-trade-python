@@ -1,0 +1,195 @@
+/* 策略页面样式 */
+.strategies-actions {
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background-color: #3498db;
+  color: white;
+}
+
+.btn-success {
+  background-color: #2ecc71;
+  color: white;
+}
+
+.btn-warning {
+  background-color: #f39c12;
+  color: white;
+}
+
+.btn-danger {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.btn-secondary {
+  background-color: #7f8c8d;
+  color: white;
+}
+
+.btn:hover {
+  opacity: 0.9;
+  transform: translateY(-2px);
+}
+
+.strategy-form-container {
+  background-color: #2c3e50;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.strategy-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #34495e;
+  border-radius: 4px;
+  background-color: #1a2533;
+  color: #ecf0f1;
+}
+
+.form-group.checkbox {
+  display: flex;
+  align-items: center;
+}
+
+.form-group.checkbox input {
+  width: auto;
+  margin-right: 10px;
+}
+
+.form-actions {
+  grid-column: span 2;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.strategies-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.strategy-card {
+  background-color: #2c3e50;
+  border-radius: 8px;
+  padding: 15px;
+  transition: all 0.3s ease;
+}
+
+.strategy-card.active {
+  border-left: 4px solid #2ecc71;
+}
+
+.strategy-card.inactive {
+  border-left: 4px solid #e74c3c;
+}
+
+.strategy-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #34495e;
+  padding-bottom: 10px;
+}
+
+.strategy-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.status-indicator {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-indicator.active {
+  background-color: #2ecc71;
+  color: white;
+}
+
+.status-indicator.inactive {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.strategy-details {
+  margin-bottom: 15px;
+}
+
+.strategy-params, .strategy-stats {
+  margin-bottom: 15px;
+}
+
+.strategy-params h4, .strategy-stats h4 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 16px;
+  color: #3498db;
+}
+
+.strategy-params ul, .strategy-stats ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.strategy-params li, .strategy-stats li {
+  margin-bottom: 5px;
+  font-size: 14px;
+}
+
+.strategy-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.no-strategies {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 40px;
+  background-color: #2c3e50;
+  border-radius: 8px;
+}
+
+.error-message {
+  background-color: #e74c3c;
+  color: white;
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}

@@ -5,17 +5,37 @@ function AccountPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const handleWebSocketData = (event) => {
+    // 修改事件名称从wsData为apiData
+    const handleApiData = (event) => {
       if (event.detail && event.detail.type === 'update' && event.detail.data.account) {
         setAccountData(event.detail.data.account);
         setLoading(false);
       }
     };
     
-    window.addEventListener('wsData', handleWebSocketData);
+    window.addEventListener('apiData', handleApiData);
+    
+    // 初始加载时尝试从API获取数据
+    const fetchInitialData = async () => {
+      try {
+        const response = await fetch('http://localhost:8000/api/account');
+        if (!response.ok) {
+          throw new Error(`HTTP错误: ${response.status}`);
+        }
+        const data = await response.json();
+        if (data.success) {
+          setAccountData(data.data);
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('获取初始数据失败:', error);
+      }
+    };
+    
+    fetchInitialData();
     
     return () => {
-      window.removeEventListener('wsData', handleWebSocketData);
+      window.removeEventListener('apiData', handleApiData);
     };
   }, []);
 

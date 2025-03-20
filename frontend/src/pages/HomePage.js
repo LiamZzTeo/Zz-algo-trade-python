@@ -4,27 +4,66 @@ import { Link } from 'react-router-dom';
 function HomePage() {
   const [accountData, setAccountData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [lastUpdate, setLastUpdate] = useState(null);
   
   useEffect(() => {
-    const handleWebSocketData = (event) => {
+    console.log('HomePage组件已挂载');
+    
+    // 处理API数据更新事件
+    const handleApiData = (event) => {
       if (event.detail && event.detail.type === 'update' && event.detail.data) {
+        console.log('收到新数据更新:', new Date().toLocaleTimeString());
         setAccountData(event.detail.data.account);
+        setLastUpdate(new Date().toLocaleTimeString());
         setLoading(false);
       }
     };
     
-    window.addEventListener('wsData', handleWebSocketData);
+    window.addEventListener('apiData', handleApiData);
+    
+    // 初始加载时尝试从API获取数据
+    const fetchInitialData = async () => {
+      try {
+        const response = await fetch('http://localhost:8000/api/account');
+        if (!response.ok) {
+          throw new Error(`HTTP错误: ${response.status}`);
+        }
+        const data = await response.json();
+        if (data.success) {
+          setAccountData(data.data);
+          setLastUpdate(new Date().toLocaleTimeString());
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('获取初始数据失败:', error);
+      }
+    };
+    
+    fetchInitialData();
+    
+    // 设置一个定时器，每秒检查一次组件是否仍在接收更新
+    const checkUpdateTimer = setInterval(() => {
+      const now = new Date();
+      const lastUpdateTime = lastUpdate ? new Date(`${new Date().toDateString()} ${lastUpdate}`) : null;
+      
+      if (lastUpdateTime && (now - lastUpdateTime) > 5000) {
+        console.log('数据更新似乎已停止，尝试重新获取...');
+        fetchInitialData();
+      }
+    }, 5000);
     
     return () => {
-      window.removeEventListener('wsData', handleWebSocketData);
+      window.removeEventListener('apiData', handleApiData);
+      clearInterval(checkUpdateTimer);
     };
-  }, []);
+  }, [lastUpdate]);
 
   return (
     <div className="dashboard-container">
       <div className="total-value-card">
         <h2>OKX 交易系统</h2>
         <p>实时监控您的交易账户</p>
+        {lastUpdate && <p className="last-update">最后更新: {lastUpdate}</p>}
         
         {loading ? (
           <div className="total-amount">加载中...</div>
@@ -53,8 +92,6 @@ function HomePage() {
             <Link to="/positions" className="nav-link">查看持仓</Link>
           </div>
         </div>
-        
-        {/* 移除了交易历史的卡片 */}
       </div>
     </div>
   );

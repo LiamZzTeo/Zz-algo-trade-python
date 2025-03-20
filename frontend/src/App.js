@@ -1,17 +1,18 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import WebSocketComponent from './components/WebSocketComponent';
+import DataFetchComponent from './components/DataFetchComponent';
 import HomePage from './pages/HomePage';
 import AccountPage from './pages/AccountPage';
 import PositionsPage from './pages/PositionsPage';
+import StrategiesPage from './pages/StrategiesPage';
 import './App.css';
 
 function App() {
   return (
     <Router>
       <div className="App">
-        {/* WebSocket 组件不渲染任何 UI，但会处理连接 */}
-        <WebSocketComponent />
+        {/* 数据获取组件不渲染任何UI，但会处理数据获取 */}
+        <DataFetchComponent />
         
         <div className="main-nav">
           <div className="nav-brand">OKX 交易系统</div>
@@ -19,7 +20,7 @@ function App() {
             <Link to="/" className="nav-link">首页</Link>
             <Link to="/account" className="nav-link">账户</Link>
             <Link to="/positions" className="nav-link">持仓</Link>
-            {/* 移除了交易历史的导航链接 */}
+            <Link to="/strategies" className="nav-link">策略</Link>
           </div>
         </div>
         
@@ -28,7 +29,7 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/account" element={<AccountPage />} />
             <Route path="/positions" element={<PositionsPage />} />
-            {/* 移除了交易历史的路由 */}
+            <Route path="/strategies" element={<StrategiesPage />} />
           </Routes>
         </div>
       </div>
