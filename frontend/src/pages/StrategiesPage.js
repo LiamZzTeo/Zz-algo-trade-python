@@ -184,6 +184,8 @@ function StrategiesPage() {
         headers: {
           'Content-Type': 'application/json'
         }
+        // 添加策略参数到请求体
+        // body: JSON.stringify({ parameters: strategy.parameters })
       });
       
       const data = await response.json();
@@ -394,6 +396,51 @@ function StrategiesPage() {
   };
   
   // 根据参数类型渲染不同的输入控件
+  // 在 StrategiesPage 组件中添加状态
+  const [instruments, setInstruments] = useState([]);
+  
+  // 添加获取可交易产品的函数
+  const fetchInstruments = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/api/instruments');
+      if (!response.ok) {
+        console.error('获取可交易产品失败:', response.status);
+        return;
+      }
+      
+      const data = await response.json();
+      if (data.success) {
+        setInstruments(data.data);
+        console.log(`获取到 ${data.data.length} 个交易品种`);
+      } else {
+        console.error('获取可交易产品失败:', data.msg);
+      }
+    } catch (error) {
+      console.error('获取可交易产品错误:', error);
+    }
+  };
+  
+  // 在 useEffect 中调用
+  useEffect(() => {
+    // 初始加载
+    fetchStrategies();
+    fetchStrategyTypes();
+    fetchAccountData();
+    fetchPositionsData();
+    fetchInstruments(); // 添加这一行
+  
+    // 设置定时刷新
+    const intervalId = setInterval(() => {
+      fetchStrategies();
+      fetchAccountData();
+      fetchPositionsData();
+    }, 10000); // 每10秒刷新一次
+  
+    // 组件卸载时清除定时器
+    return () => clearInterval(intervalId);
+  }, []);
+  
+  // 修改 renderParameterInput 函数中的交易品种选择部分
   const renderParameterInput = (key, value) => {
     const handleChange = (newValue) => {
       const currentParams = form.getFieldValue('parameters') || {};
@@ -405,22 +452,31 @@ function StrategiesPage() {
       });
     };
     
-    // 如果是交易品种参数，从实际持仓数据中获取可用品种
+    // 如果是交易品种参数，从API获取的产品列表中提供选择
     if (typeof value === 'string' && (key.toLowerCase().includes('symbol') || key.toLowerCase().includes('instid'))) {
-      // 从持仓数据中提取唯一的交易品种
-      const availableSymbols = [...new Set(positionsData.map(pos => pos.instId))];
+      // 从API获取的产品列表中提取可用品种
+      const availableSymbols = instruments.length > 0 
+        ? [...new Set(instruments.map(inst => inst.instId))]  // 使用Set去重
+        : [];
       
       return (
         <Select 
           defaultValue={value} 
           onChange={handleChange}
+          showSearch
+          style={{ width: '100%' }}
+          placeholder="选择交易品种"
+          optionFilterProp="children"
+          filterOption={(input, option) =>
+            option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+          }
         >
           {availableSymbols.length > 0 ? (
             availableSymbols.map(symbol => (
               <Option key={symbol} value={symbol}>{symbol}</Option>
             ))
           ) : (
-            // 如果没有持仓数据，提供默认选项
+            // 如果没有获取到产品数据，提供默认选项
             <>
               <Option value="BTC-USDT-SWAP">BTC-USDT-SWAP</Option>
               <Option value="ETH-USDT-SWAP">ETH-USDT-SWAP</Option>
@@ -527,8 +583,14 @@ function StrategiesPage() {
                   title={position.instId}
                   value={parseFloat(position.pos)}
                   precision={4}
-                  valueStyle={{ color: parseFloat(position.pos) > 0 ? '#3f8600' : '#cf1322' }}
-                  suffix={parseFloat(position.pos) > 0 ? '多' : '空'}
+                  valueStyle={{ 
+                    color: parseFloat(position.pos) > 0 ? '#3f8600' : 
+                           parseFloat(position.pos) < 0 ? '#cf1322' : '#8c8c8c' 
+                  }}
+                  suffix={
+                    parseFloat(position.pos) > 0 ? '多' : 
+                    parseFloat(position.pos) < 0 ? '空' : '无'
+                  }
                 />
                 <div>开仓价: {position.avgPx}</div>
                 <div>未实现盈亏: {position.upl}</div>

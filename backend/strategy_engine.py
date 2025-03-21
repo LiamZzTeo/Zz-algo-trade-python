@@ -61,21 +61,21 @@ class StrategyEngine:
                 print(f"策略不存在: {strategy_id}")
                 return False
                 
-            strategy = self.strategies[strategy_id]
+            strategy_info = self.strategies[strategy_id]
+            strategy_instance = strategy_info["instance"]
             
             # 检查策略参数是否有效
-            if not self._validate_strategy_parameters(strategy):
+            if not self._validate_strategy_parameters(strategy_instance):
                 print(f"策略参数无效: {strategy_id}")
                 return False
                 
-            # 设置策略为启用状态
-            strategy.enabled = True
-            print(f"策略已启用: {strategy_id}")
+            strategy_info["enabled"] = True
+            logger.info(f"策略 {strategy_id} 已启用")
             return True
         except Exception as e:
-            print(f"启用策略时出错: {strategy_id}, 错误: {str(e)}")
+            logger.error(f"启用策略 {strategy_id} 失败: {str(e)}")
             return False
-            
+
     def _validate_strategy_parameters(self, strategy):
         """验证策略参数是否有效"""
         try:
@@ -130,13 +130,16 @@ class StrategyEngine:
                             symbols.add(symbol)
                 
                 for symbol in symbols:
-                    market_data = self.okx_client.get_market_data(symbol)
-                    if market_data.get("success", False):
-                        self.market_data[symbol] = market_data.get("data", {})
+                    market_data = await self.get_market_data(symbol)  # 使用异步方法
+                    if market_data:
+                        self.market_data[symbol] = market_data
+                    else:
+                        logger.warning(f"无法获取 {symbol} 的市场数据")
                 
                 logger.debug("市场数据已更新")
             except Exception as e:
                 logger.error(f"更新市场数据错误: {str(e)}")
+                traceback.print_exc()  # 添加堆栈跟踪以便调试
             
             await asyncio.sleep(self.update_interval)
     
@@ -154,11 +157,15 @@ class StrategyEngine:
                     symbol = strategy.parameters.get("symbol")
                     
                     # 获取该策略需要的市场数据
-                    market_data = self.market_data.get(symbol, {})
+                    market_data = await self.get_market_data(symbol)
+                    
+                    if not market_data:
+                        logger.warning(f"策略 {strategy_id} - 无法获取市场数据")
+                        continue
                     
                     # 执行策略
                     result = strategy.execute(
-                        market_data=market_data,
+                        market_data=market_data,  # 直接传递整个market_data对象
                         positions=self.positions,
                         account=self.account_data
                     )
@@ -173,6 +180,7 @@ class StrategyEngine:
                     
                 except Exception as e:
                     logger.error(f"执行策略 {strategy_id} 错误: {str(e)}")
+                    traceback.print_exc()  # 添加堆栈跟踪以便调试
             
             await asyncio.sleep(1)  # 策略执行间隔
     
@@ -310,7 +318,7 @@ class StrategyEngine:
                 
             # 执行策略
             signal = strategy_info["instance"].execute(
-                market_data=market_data["data"],
+                market_data=market_data,  # 直接传递整个market_data对象，不再使用["data"]
                 positions=self.positions,
                 account=self.account_data
             )
@@ -334,10 +342,28 @@ class StrategyEngine:
             # 获取K线数据
             kline_data = self.okx_client.get_kline_data(symbol, "1m", 100)
             
+            # 记录K线数据响应
+            logger.debug(f"K线数据响应: {kline_data}")
+            
             # 获取当前价格
             ticker_data = self.okx_client.get_ticker(symbol)
             
+            # 记录Ticker数据响应
+            logger.debug(f"Ticker数据响应: {ticker_data}")
+            
+            # 检查响应是否成功
+            if not ticker_data.get("success", False) or not kline_data.get("success", False):
+                logger.warning(f"获取市场数据失败: ticker_success={ticker_data.get('success')}, kline_success={kline_data.get('success')}")
+                return None
+            
+            # 检查数据是否存在
             if not ticker_data.get("data") or not kline_data.get("data"):
+                logger.warning(f"市场数据为空: ticker_data={bool(ticker_data.get('data'))}, kline_data={bool(kline_data.get('data'))}")
+                return None
+            
+            # 检查数据长度
+            if len(ticker_data["data"]) == 0 or len(kline_data["data"]) == 0:
+                logger.warning(f"市场数据长度为0: ticker_length={len(ticker_data['data'])}, kline_length={len(kline_data['data'])}")
                 return None
                 
             # 构建市场数据对象
@@ -351,4 +377,6 @@ class StrategyEngine:
             return market_data
         except Exception as e:
             logger.error(f"获取市场数据时出错: {str(e)}")
+            # 打印详细的异常堆栈
+            traceback.print_exc()
             return None

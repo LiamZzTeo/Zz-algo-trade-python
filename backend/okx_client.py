@@ -252,27 +252,150 @@ class OKXClient:
             print(f"获取K线数据错误: {str(e)}")
             return {"success": False, "data": [], "msg": str(e)}
 
-    def get_market_data(self, symbol):
-        """获取综合市场数据"""
-        try:
-            # 获取K线数据
-            kline_data = self.get_kline_data(symbol, "1m", 100)
+    def get_instruments(self, inst_types=None):
+        """获取所有可交易产品
+        
+        Args:
+            inst_types: 产品类型列表，例如 ["SPOT", "SWAP", "FUTURES", "OPTION"]
+                       如果为 None，则获取所有类型
+        """
+        if inst_types is None:
+            inst_types = ["SPOT", "SWAP", "FUTURES", "OPTION"]
+        
+        all_instruments = []
+        
+        for inst_type in inst_types:
+            cache_key = f'instruments_{inst_type}'
+            cached_data = self._get_cached_data(cache_key)
             
-            # 获取当前价格
+            if cached_data and cached_data.get("success"):
+                all_instruments.extend(cached_data.get("data", []))
+                continue
+            
+            try:
+                endpoint = f"/api/v5/public/instruments?instType={inst_type}"
+                result = self._send_request("GET", endpoint)
+                
+                if result["success"]:
+                    self._set_cache(cache_key, result)
+                    all_instruments.extend(result.get("data", []))
+                else:
+                    print(f"获取 {inst_type} 产品列表失败: {result.get('msg')}")
+            except Exception as e:
+                print(f"获取 {inst_type} 产品列表错误: {str(e)}")
+        
+        return {
+            "success": True,
+            "data": all_instruments,
+            "msg": f"获取到 {len(all_instruments)} 个交易产品"
+        }
+
+    def get_market_data(self, symbol):
+        """获取市场数据，包括最新价格、24小时涨跌幅等"""
+        cache_key = f'market_data_{symbol}'
+        cached_data = self._get_cached_data(cache_key)
+        if cached_data:
+            return cached_data
+        
+        try:
+            # 获取ticker数据
             ticker_data = self.get_ticker(symbol)
             
-            if not ticker_data.get("success") or not kline_data.get("success"):
-                return {"success": False, "data": {}, "msg": "获取市场数据失败"}
-                
-            # 构建市场数据对象
+            # 获取K线数据
+            kline_data = self.get_kline(symbol, "1m", 60)  # 获取1分钟K线，60条数据
+            
             market_data = {
                 "symbol": symbol,
-                "last": ticker_data["data"][0]["last"] if ticker_data.get("data") and len(ticker_data["data"]) > 0 else None,
-                "kline": kline_data.get("data", []),
-                "timestamp": int(time.time() * 1000)
+                "last": ticker_data.get("data", {}).get("last", "0"),
+                "open24h": ticker_data.get("data", {}).get("open24h", "0"),
+                "high24h": ticker_data.get("data", {}).get("high24h", "0"),
+                "low24h": ticker_data.get("data", {}).get("low24h", "0"),
+                "volCcy24h": ticker_data.get("data", {}).get("volCcy24h", "0"),
+                "change24h": ticker_data.get("data", {}).get("change24h", "0"),
+                "kline": kline_data.get("data", [])
             }
             
-            return {"success": True, "data": market_data, "msg": "success"}
+            result = {"success": True, "data": market_data}
+            self._set_cache(cache_key, result)
+            return result
         except Exception as e:
             print(f"获取市场数据错误: {str(e)}")
+            return {"success": False, "data": {}, "msg": str(e)}
+
+    def get_kline(self, symbol, bar="1m", limit=100):
+        """获取K线数据"""
+        cache_key = f'kline_{symbol}_{bar}_{limit}'
+        cached_data = self._get_cached_data(cache_key)
+        if cached_data:
+            return cached_data
+        
+        try:
+            endpoint = f"/api/v5/market/candles?instId={symbol}&bar={bar}&limit={limit}"
+            result = self._send_request("GET", endpoint)
+            if result["success"]:
+                self._set_cache(cache_key, result)
+            return result
+        except Exception as e:
+            print(f"获取K线数据错误: {str(e)}")
+            return {"success": False, "data": [], "msg": str(e)}
+
+    def get_ticker(self, symbol):
+        """获取单个产品的行情数据"""
+        cache_key = f'ticker_{symbol}'
+        cached_data = self._get_cached_data(cache_key)
+        if cached_data:
+            return cached_data
+        
+        try:
+            endpoint = f"/api/v5/market/ticker?instId={symbol}"
+            result = self._send_request("GET", endpoint)
+            if result["success"]:
+                self._set_cache(cache_key, result)
+            return result
+        except Exception as e:
+            print(f"获取行情数据错误: {str(e)}")
+            return {"success": False, "data": {}, "msg": str(e)}
+
+    def get_market_data(self, symbol):
+        """获取市场数据，包括最新价格、24小时涨跌幅等"""
+        try:
+            # 获取ticker数据
+            ticker_data = self.get_ticker(symbol)
+            
+            if not ticker_data["success"]:
+                return ticker_data
+                
+            # 提取需要的数据
+            ticker = ticker_data.get("data", [{}])[0]
+            
+            market_data = {
+                "symbol": symbol,
+                "last": ticker.get("last", "0"),
+                "open24h": ticker.get("open24h", "0"),
+                "high24h": ticker.get("high24h", "0"),
+                "low24h": ticker.get("low24h", "0"),
+                "volCcy24h": ticker.get("volCcy24h", "0"),
+                "change24h": ticker.get("sodUtc0", "0"),  # 根据OKX API文档，这是24小时涨跌幅
+            }
+            
+            return {"success": True, "data": market_data}
+        except Exception as e:
+            print(f"获取市场数据错误: {str(e)}")
+            return {"success": False, "data": {}, "msg": str(e)}
+
+    def get_assets(self):
+        """获取资产数据（与账户数据相同，但格式可能不同）"""
+        try:
+            # 调用已有的获取账户余额方法
+            account_data = self.get_account_balance()
+            
+            if not account_data["success"]:
+                return account_data
+                
+            # 可以根据需要调整数据格式
+            assets_data = account_data.get("data", {})
+            
+            return {"success": True, "data": assets_data}
+        except Exception as e:
+            print(f"获取资产数据错误: {str(e)}")
             return {"success": False, "data": {}, "msg": str(e)}
