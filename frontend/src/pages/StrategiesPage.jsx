@@ -1,20 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Card, Table, Button, Modal, Form, Input, Select, Switch, 
-  Tabs, message, Tooltip, Spin, Typography, Space, Tag, Divider, Statistic 
+  Tabs, message, Tooltip, Spin, Typography, Space, Tag, Divider 
 } from 'antd';
 import { 
   PlusOutlined, EditOutlined, DeleteOutlined, PlayCircleOutlined, 
   PauseCircleOutlined, CodeOutlined, LineChartOutlined, SettingOutlined 
 } from '@ant-design/icons';
+import CodeEditor from '../components/CodeEditor';
+import StrategyParameters from '../components/StrategyParameters';
 import '../styles/StrategiesPage.css';
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
 const { Option } = Select;
-const { TextArea } = Input;
 
-function StrategiesPage() {
+const StrategiesPage = () => {
   const [strategies, setStrategies] = useState([]);
   const [strategyTypes, setStrategyTypes] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -23,15 +24,12 @@ function StrategiesPage() {
   const [form] = Form.useForm();
   const [activeTab, setActiveTab] = useState('1');
   const [codeValue, setCodeValue] = useState('');
-  const [accountData, setAccountData] = useState({});
-  const [positionsData, setPositionsData] = useState([]);
 
   // 获取策略列表
   const fetchStrategies = async () => {
     setLoading(true);
     try {
-      // 修改为正确的API路径，确保包含完整的URL
-      const response = await fetch('http://localhost:8000/api/strategies');
+      const response = await fetch('/api/strategies');
       const data = await response.json();
       if (data.success) {
         setStrategies(data.data);
@@ -46,37 +44,10 @@ function StrategiesPage() {
     }
   };
 
-  // 获取账户数据
-  const fetchAccountData = async () => {
-    try {
-      const response = await fetch('http://localhost:8000/api/account');
-      const data = await response.json();
-      if (data.success) {
-        setAccountData(data.data);
-      }
-    } catch (error) {
-      console.error('获取账户数据错误:', error);
-    }
-  };
-
-  // 获取持仓数据
-  const fetchPositionsData = async () => {
-    try {
-      const response = await fetch('http://localhost:8000/api/positions');
-      const data = await response.json();
-      if (data.success) {
-        setPositionsData(data.data);
-      }
-    } catch (error) {
-      console.error('获取持仓数据错误:', error);
-    }
-  };
-
   // 获取可用策略类型
   const fetchStrategyTypes = async () => {
     try {
-      // 修改为正确的API路径，确保包含完整的URL
-      const response = await fetch('http://localhost:8000/api/strategy-types');
+      const response = await fetch('/api/strategy-types');
       const data = await response.json();
       if (data.success) {
         setStrategyTypes(data.data);
@@ -89,23 +60,9 @@ function StrategiesPage() {
     }
   };
 
-  // 定期刷新数据
   useEffect(() => {
-    // 初始加载
     fetchStrategies();
     fetchStrategyTypes();
-    fetchAccountData();
-    fetchPositionsData();
-
-    // 设置定时刷新
-    const intervalId = setInterval(() => {
-      fetchStrategies();
-      fetchAccountData();
-      fetchPositionsData();
-    }, 10000); // 每10秒刷新一次
-
-    // 组件卸载时清除定时器
-    return () => clearInterval(intervalId);
   }, []);
 
   // 创建或更新策略
@@ -122,8 +79,8 @@ function StrategiesPage() {
       }
       
       const url = editingStrategy 
-        ? `http://localhost:8000/api/strategies/${editingStrategy.id}` 
-        : 'http://localhost:8000/api/strategies';
+        ? `/api/strategies/${editingStrategy.id}` 
+        : '/api/strategies';
       
       const method = editingStrategy ? 'PUT' : 'POST';
       
@@ -153,7 +110,7 @@ function StrategiesPage() {
   // 删除策略
   const handleDelete = async (strategyId) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/strategies/${strategyId}`, {
+      const response = await fetch(`/api/strategies/${strategyId}`, {
         method: 'DELETE'
       });
       
@@ -174,7 +131,7 @@ function StrategiesPage() {
   // 启用/禁用策略
   const handleToggleEnabled = async (strategy) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/strategies/${strategy.id}`, {
+      const response = await fetch(`/api/strategies/${strategy.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -291,13 +248,13 @@ function StrategiesPage() {
       render: (stats) => (
         <Space>
           <Tooltip title="运行次数">
-            <Tag color="blue">运行: {stats?.runs || 0}</Tag>
+            <Tag color="blue">运行: {stats.runs}</Tag>
           </Tooltip>
           <Tooltip title="信号次数">
-            <Tag color="purple">信号: {stats?.signals || 0}</Tag>
+            <Tag color="purple">信号: {stats.signals}</Tag>
           </Tooltip>
           <Tooltip title="交易次数">
-            <Tag color="orange">交易: {stats?.trades || 0}</Tag>
+            <Tag color="orange">交易: {stats.trades}</Tag>
           </Tooltip>
         </Space>
       )
@@ -367,174 +324,21 @@ function StrategiesPage() {
     }
   };
 
-  // 渲染参数输入控件
-  const renderParameterInputs = () => {
-    const parameters = form.getFieldValue('parameters') || {};
-    
-    return (
-      <div className="parameters-container">
-        {Object.entries(parameters).map(([key, value]) => {
-          // 跳过代码参数，它在代码编辑器中编辑
-          if (key === 'code') return null;
-          
-          return (
-            <Form.Item 
-              key={key} 
-              label={key} 
-              className="parameter-item"
-            >
-              {renderParameterInput(key, value)}
-            </Form.Item>
-          );
-        })}
-      </div>
-    );
-  };
-  
-  // 根据参数类型渲染不同的输入控件
-  const renderParameterInput = (key, value) => {
-    const handleChange = (newValue) => {
-      const currentParams = form.getFieldValue('parameters') || {};
-      form.setFieldsValue({
-        parameters: {
-          ...currentParams,
-          [key]: newValue
-        }
-      });
-    };
-    
-    // 如果是交易品种参数，从实际持仓数据中获取可用品种
-    if (typeof value === 'string' && (key.toLowerCase().includes('symbol') || key.toLowerCase().includes('instid'))) {
-      // 从持仓数据中提取唯一的交易品种
-      const availableSymbols = [...new Set(positionsData.map(pos => pos.instId))];
-      
-      return (
-        <Select 
-          defaultValue={value} 
-          onChange={handleChange}
-        >
-          {availableSymbols.length > 0 ? (
-            availableSymbols.map(symbol => (
-              <Option key={symbol} value={symbol}>{symbol}</Option>
-            ))
-          ) : (
-            // 如果没有持仓数据，提供默认选项
-            <>
-              <Option value="BTC-USDT-SWAP">BTC-USDT-SWAP</Option>
-              <Option value="ETH-USDT-SWAP">ETH-USDT-SWAP</Option>
-              <Option value="LTC-USDT-SWAP">LTC-USDT-SWAP</Option>
-              <Option value="EOS-USDT-SWAP">EOS-USDT-SWAP</Option>
-            </>
-          )}
-        </Select>
-      );
-    } else if (typeof value === 'number') {
-      return (
-        <Input 
-          type="number" 
-          defaultValue={value} 
-          onChange={(e) => handleChange(parseFloat(e.target.value))}
-        />
-      );
-    } else if (typeof value === 'boolean') {
-      return (
-        <Select 
-          defaultValue={value} 
-          onChange={handleChange}
-        >
-          <Option value={true}>是</Option>
-          <Option value={false}>否</Option>
-        </Select>
-      );
-    } else {
-      return (
-        <Input 
-          defaultValue={value} 
-          onChange={(e) => handleChange(e.target.value)}
-        />
-      );
-    }
-  };
-
-  // 渲染代码编辑器
-  const renderCodeEditor = () => {
-    // 如果没有安装 react-monaco-editor，使用普通文本框
-    // 注释提到未安装react-monaco-editor，但package.json中包含此依赖
-    // 可以考虑实际使用Monaco编辑器或移除此依赖
-    return (
-      <div className="code-editor-container">
-        <TextArea
-          value={codeValue}
-          onChange={(e) => setCodeValue(e.target.value)}
-          placeholder="在这里编写策略代码..."
-          autoSize={{ minRows: 15, maxRows: 30 }}
-          className="code-editor"
-        />
-        <div className="code-editor-tips">
-          <p>策略代码必须包含 execute_strategy 函数，该函数接收以下参数：</p>
-          <ul>
-            <li>market_data: 市场数据</li>
-            <li>positions: 当前持仓</li>
-            <li>account: 账户信息</li>
-            <li>parameters: 策略参数</li>
-            <li>logger: 日志记录器</li>
-          </ul>
-          <p>函数应返回交易信号对象或 None</p>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="strategies-page">
       <div className="page-header">
         <Title level={2}>策略管理</Title>
-        <Space>
-          {/* 显示账户余额信息 */}
-          {accountData && accountData.totalEq && (
-            <Card className="account-info-card">
-              <Statistic
-                title="账户总资产"
-                value={parseFloat(accountData.totalEq)}
-                precision={2}
-                suffix="USDT"
-              />
-            </Card>
-          )}
-          <Button 
-            type="primary" 
-            icon={<PlusOutlined />} 
-            onClick={handleCreate}
-            className="create-button"
-          >
-            创建策略
-          </Button>
-        </Space>
+        <Button 
+          type="primary" 
+          icon={<PlusOutlined />} 
+          onClick={handleCreate}
+          className="create-button"
+        >
+          创建策略
+        </Button>
       </div>
       
       <Divider />
-      
-      {/* 显示持仓信息 */}
-      {positionsData && positionsData.length > 0 && (
-        <div className="positions-overview">
-          <Title level={4}>当前持仓</Title>
-          <div className="positions-list">
-            {positionsData.map((position, index) => (
-              <Card key={index} className="position-card">
-                <Statistic
-                  title={position.instId}
-                  value={parseFloat(position.pos)}
-                  precision={4}
-                  valueStyle={{ color: parseFloat(position.pos) > 0 ? '#3f8600' : '#cf1322' }}
-                  suffix={parseFloat(position.pos) > 0 ? '多' : '空'}
-                />
-                <div>开仓价: {position.avgPx}</div>
-                <div>未实现盈亏: {position.upl}</div>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
       
       <Card className="strategies-card" bordered={false}>
         <Spin spinning={loading}>
@@ -593,7 +397,7 @@ function StrategiesPage() {
                 name="description"
                 label="策略描述"
               >
-                <TextArea placeholder="输入策略描述" rows={3} />
+                <Input.TextArea placeholder="输入策略描述" rows={3} />
               </Form.Item>
               
               <Form.Item
@@ -621,29 +425,27 @@ function StrategiesPage() {
               >
                 <Switch />
               </Form.Item>
-              
-              <Form.Item
-                name="parameters"
-                hidden
-              >
-                <Input />
-              </Form.Item>
             </Form>
           </TabPane>
           
           <TabPane tab="参数配置" key="2">
-            {renderParameterInputs()}
+            <StrategyParameters form={form} />
           </TabPane>
           
           {form.getFieldValue('strategy_type') === 'custom' && (
             <TabPane tab="策略代码" key="3">
-              {renderCodeEditor()}
+              <CodeEditor
+                value={codeValue}
+                onChange={setCodeValue}
+                language="python"
+                height="400px"
+              />
             </TabPane>
           )}
         </Tabs>
       </Modal>
     </div>
   );
-}
+};
 
 export default StrategiesPage;

@@ -1,3 +1,4 @@
+// 这个测试文件未被使用，可以删除
 import { render, screen } from '@testing-library/react';
 import App from './App';
 

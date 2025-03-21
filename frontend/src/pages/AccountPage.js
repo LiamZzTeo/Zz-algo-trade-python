@@ -1,84 +1,145 @@
 import React, { useState, useEffect } from 'react';
+import { Card, Row, Col, Statistic, Typography, Divider, Spin, Table, Tag } from 'antd';
+import { 
+  DollarCircleOutlined, 
+  ArrowUpOutlined, 
+  ArrowDownOutlined 
+} from '@ant-design/icons';
+import '../styles/AccountPage.css';
+
+const { Title } = Typography;
 
 function AccountPage() {
-  const [accountData, setAccountData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [accountData, setAccountData] = useState({});
+  const [assetsData, setAssetsData] = useState([]);
+  const [error, setError] = useState(null);
+
+  // 获取账户数据
+  const fetchAccountData = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/api/account');
+      const data = await response.json();
+      if (data.success) {
+        setAccountData(data.data);
+      } else {
+        setError('获取账户数据失败');
+      }
+    } catch (error) {
+      console.error('获取账户数据错误:', error);
+      setError('获取账户数据错误');
+    }
+  };
+
+  // 获取资产数据
+  const fetchAssetsData = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/api/assets');
+      const data = await response.json();
+      if (data.success) {
+        setAssetsData(data.data);
+      } else {
+        setError('获取资产数据失败');
+      }
+    } catch (error) {
+      console.error('获取资产数据错误:', error);
+      setError('获取资产数据错误');
+    }
+  };
+
+  // 加载所有数据
+  const loadAllData = async () => {
+    setLoading(true);
+    await Promise.all([
+      fetchAccountData(),
+      fetchAssetsData()
+    ]);
+    setLoading(false);
+  };
 
   useEffect(() => {
-    // 修改事件名称从wsData为apiData
-    const handleApiData = (event) => {
-      if (event.detail && event.detail.type === 'update' && event.detail.data.account) {
-        setAccountData(event.detail.data.account);
-        setLoading(false);
-      }
-    };
-    
-    window.addEventListener('apiData', handleApiData);
-    
-    // 初始加载时尝试从API获取数据
-    const fetchInitialData = async () => {
-      try {
-        const response = await fetch('http://localhost:8000/api/account');
-        if (!response.ok) {
-          throw new Error(`HTTP错误: ${response.status}`);
-        }
-        const data = await response.json();
-        if (data.success) {
-          setAccountData(data.data);
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error('获取初始数据失败:', error);
-      }
-    };
-    
-    fetchInitialData();
-    
-    return () => {
-      window.removeEventListener('apiData', handleApiData);
-    };
+    // 初始加载
+    loadAllData();
+
+    // 添加定时刷新机制
+    const intervalId = setInterval(() => {
+      // 不需要每次都显示加载状态，只需静默更新数据
+      Promise.all([
+        fetchAccountData(),
+        fetchAssetsData()
+      ]);
+    }, 10000); // 每10秒刷新一次
+
+    // 组件卸载时清除定时器
+    return () => clearInterval(intervalId);
   }, []);
-
-  if (loading) {
-    return <div className="loading">加载账户数据中...</div>;
-  }
-
-  if (!accountData) {
-    return <div className="page-container">
-      <h2 className="page-header">账户信息</h2>
-      <div>无可用账户数据</div>
-    </div>;
-  }
 
   return (
     <div className="page-container">
-      <h2 className="page-header">账户信息</h2>
-      
-      <div className="account-info">
-        <div className="total-value">
-          <h3>总资产</h3>
-          <div className="total-amount">{accountData.totalEq || '0'}</div>
-        </div>
+      <Spin spinning={loading}>
+        <Title level={2}>账户信息</Title>
+        <Divider />
         
-        <div className="assets-list">
-          <h3>资产明细</h3>
-          <div className="assets-grid">
-            {accountData.details && accountData.details.map((item, index) => (
-              <div className="asset-card" key={index}>
-                <h4>{item.ccy}</h4>
-                <div className="asset-details">
-                  <p>可用: {item.availBal}</p>
-                  <p>冻结: {item.frozenBal}</p>
-                  <p>总额: {item.cashBal}</p>
+        <Row gutter={[16, 16]}>
+          <Col span={24}>
+            <Card>
+              <Statistic
+                title="总资产"
+                value={accountData.totalEq ? parseFloat(accountData.totalEq) : 0}
+                precision={2}
+                prefix={<DollarCircleOutlined />}
+                suffix="USDT"
+                valueStyle={{ color: '#1890ff', fontSize: '32px' }}
+              />
+            </Card>
+          </Col>
+        </Row>
+        
+        <Divider orientation="left">资产明细</Divider>
+        
+        <Row gutter={[16, 16]}>
+          {accountData.details && accountData.details.map((item, index) => (
+            <Col xs={24} sm={12} md={8} lg={6} key={index}>
+              <Card hoverable>
+                <Statistic
+                  title={`${item.ccy} 余额`}
+                  value={parseFloat(item.cashBal)}
+                  precision={4}
+                  valueStyle={{ color: '#3f8600' }}
+                />
+                <Divider style={{ margin: '12px 0' }} />
+                <Row>
+                  <Col span={12}>
+                    <Statistic
+                      title="可用"
+                      value={parseFloat(item.availBal)}
+                      precision={4}
+                      valueStyle={{ fontSize: '14px' }}
+                    />
+                  </Col>
+                  <Col span={12}>
+                    <Statistic
+                      title="冻结"
+                      value={parseFloat(item.frozenBal)}
+                      precision={4}
+                      valueStyle={{ fontSize: '14px' }}
+                    />
+                  </Col>
+                </Row>
+              </Card>
+            </Col>
+          ))}
+          {(!accountData.details || accountData.details.length === 0) && !loading && (
+            <Col span={24}>
+              <Card>
+                <div style={{ textAlign: 'center', padding: '20px' }}>
+                  暂无资产明细
                 </div>
-              </div>
-            ))}
-            {(!accountData.details || accountData.details.length === 0) && (
-              <div>暂无资产明细</div>
-            )}
-          </div>
-        </div>
-      </div>
+              </Card>
+            </Col>
+          )}
+        </Row>
+      </Spin>
     </div>
   );
 }

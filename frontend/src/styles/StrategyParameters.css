@@ -1,0 +1,30 @@
+.strategy-parameters {
+  padding: 16px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  margin-top: 16px;
+}
+
+.parameters-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.parameter-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: white;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.param-label {
+  width: 120px;
+  margin-right: 12px;
+}
+
+.param-input {
+  flex: 1;
+}

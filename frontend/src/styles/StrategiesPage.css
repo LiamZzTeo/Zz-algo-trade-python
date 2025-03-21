@@ -115,6 +115,7 @@
   border-left: 4px solid #e74c3c;
 }
 
+/* 这些类似乎未在当前组件中使用 */
 .strategy-header {
   display: flex;
   justify-content: space-between;
@@ -192,4 +193,135 @@
   padding: 10px;
   border-radius: 4px;
   margin-bottom: 20px;
+}
+
+/* 添加策略类型选择框的样式 */
+.form-group select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #34495e;
+  border-radius: 4px;
+  background-color: #1a2533;
+  color: #ecf0f1;
+}
+
+.strategy-parameters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+/* 其他样式保持不变 */
+.strategies-page {
+  padding: 20px;
+  background-color: #f0f2f5;
+  min-height: calc(100vh - 64px);
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.create-button {
+  background: linear-gradient(to right, #1890ff, #52c41a);
+  border: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.strategies-card {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+}
+
+.strategies-table .ant-table-thead > tr > th {
+  background-color: #f6f8fa;
+  font-weight: 600;
+}
+
+.strategies-table .ant-table-tbody > tr:hover > td {
+  background-color: #e6f7ff;
+}
+
+.parameters-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+  background-color: #f9f9f9;
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.parameter-item {
+  margin-bottom: 0;
+  background-color: white;
+  padding: 12px;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.code-editor-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.code-editor {
+  font-family: 'Consolas', 'Monaco', monospace;
+  background-color: #1e1e1e;
+  color: #d4d4d4;
+  border-radius: 6px;
+}
+
+.code-editor-tips {
+  background-color: #fffbe6;
+  padding: 12px;
+  border-radius: 6px;
+  border-left: 4px solid #faad14;
+}
+
+.code-editor-tips ul {
+  margin-left: 20px;
+  margin-bottom: 10px;
+}
+
+
+/* 在文件末尾添加以下样式 */
+
+.account-info-card {
+  margin-right: 16px;
+  background: linear-gradient(135deg, #1890ff, #52c41a);
+  color: white;
+  border: none;
+}
+
+.account-info-card .ant-statistic-title,
+.account-info-card .ant-statistic-content {
+  color: white;
+}
+
+.positions-overview {
+  margin-bottom: 20px;
+}
+
+.positions-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.position-card {
+  min-width: 200px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.09);
+  border-radius: 8px;
+  transition: all 0.3s;
+}
+
+.position-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }

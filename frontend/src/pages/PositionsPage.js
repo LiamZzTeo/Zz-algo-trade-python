@@ -3,12 +3,14 @@ import React, { useState, useEffect } from 'react';
 function PositionsPage() {
   const [positionsData, setPositionsData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [lastUpdate, setLastUpdate] = useState(null);
 
   useEffect(() => {
     // 修改事件名称从wsData为apiData
     const handleApiData = (event) => {
       if (event.detail && event.detail.type === 'update' && event.detail.data.positions) {
         setPositionsData(event.detail.data.positions);
+        setLastUpdate(new Date().toLocaleTimeString());
         setLoading(false);
       }
     };
@@ -25,6 +27,7 @@ function PositionsPage() {
         const data = await response.json();
         if (data.success) {
           setPositionsData(data.data);
+          setLastUpdate(new Date().toLocaleTimeString());
           setLoading(false);
         }
       } catch (error) {
@@ -34,8 +37,14 @@ function PositionsPage() {
     
     fetchInitialData();
     
+    // 设置定时器，每0.5秒刷新一次数据
+    const refreshTimer = setInterval(() => {
+      fetchInitialData();
+    }, 500); // 0.5秒更新一次
+    
     return () => {
       window.removeEventListener('apiData', handleApiData);
+      clearInterval(refreshTimer); // 清除定时器
     };
   }, []);
 
@@ -46,6 +55,7 @@ function PositionsPage() {
   return (
     <div className="page-container">
       <h2 className="page-header">持仓信息</h2>
+      {lastUpdate && <p className="last-update">最后更新: {lastUpdate}</p>}
       
       {positionsData && positionsData.length > 0 ? (
         <div className="positions-table-container">

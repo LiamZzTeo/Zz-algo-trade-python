@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+import 'antd/dist/antd.css'; // 导入Ant Design样式
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
@@ -11,7 +12,4 @@ root.render(
   </React.StrictMode>
 );
 
-// 如果你想开始测量应用性能，可以传递一个函数
-// 来记录结果（例如：reportWebVitals(console.log)）
-// 或发送到分析端点。了解更多：https://bit.ly/CRA-vitals
 reportWebVitals();

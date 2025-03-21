@@ -1,0 +1,17 @@
+.navbar {
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 1;
+}
+
+.logo {
+  color: white;
+  font-size: 20px;
+  font-weight: bold;
+  margin-right: 30px;
+  background: linear-gradient(to right, #1890ff, #52c41a);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}

@@ -2,6 +2,7 @@ from fastapi import FastAPI, BackgroundTasks, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from okx_client import OKXClient
 from strategy_engine import StrategyEngine
+from strategies.strategy_factory import StrategyFactory
 import asyncio
 import json
 import sys
@@ -45,6 +46,7 @@ class StrategyConfig(BaseModel):
     parameters: Dict = {}
     enabled: bool = False
 
+# 删除以下代码块
 # 示例策略函数
 def simple_ma_strategy(market_data, positions, account, config):
     """
@@ -113,20 +115,22 @@ async def startup_event():
     """应用启动时，开始后台数据更新任务和策略引擎"""
     asyncio.create_task(update_data_periodically())
     
-    # 注册示例策略
+    # 注册示例策略 - 使用新的策略工厂创建一个动量策略
     strategy_engine.register_strategy(
-        "simple_ma",
-        simple_ma_strategy,
-        {
+        strategy_type="momentum",
+        strategy_id="demo_momentum",
+        name="示例动量策略",
+        description="系统启动时自动创建的示例动量策略",
+        parameters={
             "symbol": "BTC-USDT-SWAP",
-            "fast_ma": 5,
-            "slow_ma": 20,
-            "position_size": "1"
+            "lookback_period": 5,
+            "threshold": 0.01,
+            "position_size": 1
         }
     )
     print("后台数据更新任务已启动")
 
-# 启动策略引擎
+    # 启动策略引擎
     await strategy_engine.start()
     print("策略引擎已启动")
 
@@ -166,28 +170,49 @@ async def get_positions():
 async def get_strategies():
     """获取所有策略"""
     strategies_list = []
-    for strategy_id, strategy in strategy_engine.strategies.items():
+    for strategy_id, strategy_info in strategy_engine.strategies.items():
+        strategy = strategy_info["instance"]
         strategies_list.append({
             "id": strategy_id,
-            "config": strategy["config"],
-            "enabled": strategy["enabled"],
-            "last_run": strategy["last_run"],
-            "stats": strategy["stats"]
+            "type": strategy.__class__.__name__,
+            "name": strategy.name,
+            "description": strategy.description,
+            "parameters": strategy.parameters,
+            "enabled": strategy_info["enabled"],
+            "last_run": strategy_info["last_run"],
+            "stats": strategy_info["stats"]
         })
     return {"success": True, "data": strategies_list}
 
+# 添加获取可用策略类型的API端点
+@app.get("/api/strategy-types")
+async def get_strategy_types():
+    """获取所有可用的策略类型"""
+    try:
+        strategy_types = StrategyFactory.get_available_strategies()
+        return {"success": True, "data": strategy_types}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# 修改创建策略的API端点，支持不同类型的策略
 @app.post("/api/strategies")
-async def create_strategy(strategy: StrategyConfig):
+async def create_strategy(strategy: dict):
     """创建新策略"""
     try:
-        # 这里简化处理，实际应该根据策略类型选择不同的策略函数
+        required_fields = ["strategy_id", "strategy_type", "parameters"]
+        for field in required_fields:
+            if field not in strategy:
+                raise HTTPException(status_code=400, detail=f"缺少必要字段: {field}")
+        
         strategy_id = strategy_engine.register_strategy(
-            strategy.strategy_id,
-            simple_ma_strategy,  # 使用示例策略函数
-            strategy.parameters
+            strategy_type=strategy["strategy_type"],
+            strategy_id=strategy["strategy_id"],
+            name=strategy.get("name"),
+            description=strategy.get("description"),
+            parameters=strategy.get("parameters")
         )
         
-        if strategy.enabled:
+        if strategy.get("enabled", False):
             strategy_engine.enable_strategy(strategy_id)
             
         return {"success": True, "data": {"id": strategy_id}}
@@ -201,8 +226,10 @@ async def update_strategy(strategy_id: str, strategy: StrategyConfig):
         raise HTTPException(status_code=404, detail="策略不存在")
         
     try:
-        # 更新策略配置
-        strategy_engine.strategies[strategy_id]["config"] = strategy.parameters
+        # 更新策略参数
+        result = strategy_engine.update_strategy_parameters(strategy_id, strategy.parameters)
+        if not result:
+            raise HTTPException(status_code=400, detail="更新策略参数失败")
         
         # 更新启用状态
         if strategy.enabled:

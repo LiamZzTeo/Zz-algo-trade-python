@@ -1,0 +1,45 @@
+.dashboard-container {
+  padding: 20px;
+  background-color: #f0f2f5;
+  min-height: calc(100vh - 64px);
+}
+
+.dashboard-header {
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.09);
+  border-radius: 8px;
+  transition: all 0.3s;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.market-card, .strategy-card, .positions-card, .trades-card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.09);
+  border-radius: 8px;
+  height: 100%;
+}
+
+.no-data {
+  text-align: center;
+  padding: 20px;
+  color: #999;
+  font-size: 14px;
+}
+
+.ant-table-small .ant-table-thead > tr > th {
+  background-color: #f6f8fa;
+}
+
+.ant-statistic-title {
+  font-size: 14px;
+}
+
+.ant-card-head-title {
+  font-weight: 600;
+}

@@ -4,7 +4,6 @@ const DataFetchComponent = () => {
     const fetchIntervalRef = useRef(null);
     const isActiveRef = useRef(true);
     const fetchDelayMs = 500; // 0.5秒更新一次
-    const lastUpdateRef = useRef(0);
     
     // API服务器配置
     const API_SERVER = {
@@ -30,17 +29,10 @@ const DataFetchComponent = () => {
                 
                 const data = await response.json();
                 
-                // 检查是否有新数据
-                if (data.timestamp > lastUpdateRef.current) {
-                    lastUpdateRef.current = data.timestamp;
-                    
-                    // 分发数据更新事件
-                    window.dispatchEvent(new CustomEvent('apiData', { 
-                        detail: data 
-                    }));
-                    
-                    console.log('数据已更新，时间戳:', new Date().toLocaleTimeString());
-                }
+                // 分发数据更新事件
+                window.dispatchEvent(new CustomEvent('apiData', { 
+                    detail: data 
+                }));
                 
             } catch (error) {
                 console.error('获取数据失败:', error);
@@ -65,7 +57,6 @@ const DataFetchComponent = () => {
 
         // 组件卸载时清理
         return () => {
-            console.log('清理数据获取组件');
             isActiveRef.current = false;
             if (fetchIntervalRef.current) {
                 clearInterval(fetchIntervalRef.current);

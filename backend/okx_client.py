@@ -217,3 +217,62 @@ class OKXClient:
         except Exception as e:
             print(f"撤单错误: {e}")
             return {"success": False, "data": {}, "msg": str(e)}
+
+    def get_ticker(self, symbol):
+        """获取当前价格"""
+        cache_key = f'ticker_{symbol}'
+        cached_data = self._get_cached_data(cache_key)
+        if cached_data:
+            return cached_data
+    
+        try:
+            endpoint = f"/market/ticker?instId={symbol}"
+            result = self._send_request("GET", endpoint)
+            if result["success"]:
+                self._set_cache(cache_key, result)
+            return result
+        except Exception as e:
+            print(f"获取当前价格错误: {str(e)}")
+            return {"success": False, "data": [], "msg": str(e)}
+            
+    def get_kline_data(self, symbol, bar="1m", limit=100):
+        """获取K线数据"""
+        cache_key = f'kline_{symbol}_{bar}_{limit}'
+        cached_data = self._get_cached_data(cache_key)
+        if cached_data:
+            return cached_data
+    
+        try:
+            endpoint = f"/market/candles?instId={symbol}&bar={bar}&limit={limit}"
+            result = self._send_request("GET", endpoint)
+            if result["success"]:
+                self._set_cache(cache_key, result)
+            return result
+        except Exception as e:
+            print(f"获取K线数据错误: {str(e)}")
+            return {"success": False, "data": [], "msg": str(e)}
+
+    def get_market_data(self, symbol):
+        """获取综合市场数据"""
+        try:
+            # 获取K线数据
+            kline_data = self.get_kline_data(symbol, "1m", 100)
+            
+            # 获取当前价格
+            ticker_data = self.get_ticker(symbol)
+            
+            if not ticker_data.get("success") or not kline_data.get("success"):
+                return {"success": False, "data": {}, "msg": "获取市场数据失败"}
+                
+            # 构建市场数据对象
+            market_data = {
+                "symbol": symbol,
+                "last": ticker_data["data"][0]["last"] if ticker_data.get("data") and len(ticker_data["data"]) > 0 else None,
+                "kline": kline_data.get("data", []),
+                "timestamp": int(time.time() * 1000)
+            }
+            
+            return {"success": True, "data": market_data, "msg": "success"}
+        except Exception as e:
+            print(f"获取市场数据错误: {str(e)}")
+            return {"success": False, "data": {}, "msg": str(e)}
