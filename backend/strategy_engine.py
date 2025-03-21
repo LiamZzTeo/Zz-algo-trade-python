@@ -54,15 +54,49 @@ class StrategyEngine:
             logger.error(f"注册策略 {strategy_id} 失败: {str(e)}")
             raise
         
-    def enable_strategy(self, strategy_id: str):
+    def enable_strategy(self, strategy_id):
         """启用策略"""
-        if strategy_id in self.strategies:
-            self.strategies[strategy_id]["enabled"] = True
-            logger.info(f"策略 {strategy_id} 已启用")
+        try:
+            if strategy_id not in self.strategies:
+                print(f"策略不存在: {strategy_id}")
+                return False
+                
+            strategy = self.strategies[strategy_id]
+            
+            # 检查策略参数是否有效
+            if not self._validate_strategy_parameters(strategy):
+                print(f"策略参数无效: {strategy_id}")
+                return False
+                
+            # 设置策略为启用状态
+            strategy.enabled = True
+            print(f"策略已启用: {strategy_id}")
             return True
-        logger.error(f"策略 {strategy_id} 不存在")
-        return False
-        
+        except Exception as e:
+            print(f"启用策略时出错: {strategy_id}, 错误: {str(e)}")
+            return False
+            
+    def _validate_strategy_parameters(self, strategy):
+        """验证策略参数是否有效"""
+        try:
+            # 基本参数检查
+            required_params = ["symbol"]
+            for param in required_params:
+                if param not in strategy.parameters:
+                    print(f"缺少必要参数: {param}")
+                    return False
+                
+            # 检查交易品种是否有效
+            symbol = strategy.parameters.get("symbol")
+            if not symbol:
+                print("交易品种不能为空")
+                return False
+                
+            return True
+        except Exception as e:
+            print(f"验证策略参数时出错: {str(e)}")
+            return False
+    
     def disable_strategy(self, strategy_id: str):
         """禁用策略"""
         if strategy_id in self.strategies:

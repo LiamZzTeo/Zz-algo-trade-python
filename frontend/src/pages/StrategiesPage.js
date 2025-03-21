@@ -174,24 +174,26 @@ function StrategiesPage() {
   // 启用/禁用策略
   const handleToggleEnabled = async (strategy) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/strategies/${strategy.id}`, {
-        method: 'PUT',
+      // 使用专门的启用/禁用端点
+      const endpoint = strategy.enabled 
+        ? `http://localhost:8000/api/strategies/${strategy.id}/disable`
+        : `http://localhost:8000/api/strategies/${strategy.id}/enable`;
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          ...strategy,
-          enabled: !strategy.enabled
-        })
+        }
       });
       
       const data = await response.json();
+      console.log(`${strategy.enabled ? '禁用' : '启用'}策略响应:`, data);
       
       if (data.success) {
-        message.success(`${!strategy.enabled ? '启用' : '禁用'}策略成功`);
+        message.success(`${strategy.enabled ? '禁用' : '启用'}策略成功`);
         fetchStrategies();
       } else {
-        message.error(`${!strategy.enabled ? '启用' : '禁用'}策略失败: ${data.msg || '未知错误'}`);
+        message.error(`${strategy.enabled ? '禁用' : '启用'}策略失败: ${data.msg || '未知错误'}`);
       }
     } catch (error) {
       console.error('切换策略状态错误:', error);
@@ -647,3 +649,31 @@ function StrategiesPage() {
 }
 
 export default StrategiesPage;
+
+// 在启用策略的函数中添加错误处理和日志
+const enableStrategy = async (strategyId) => {
+  try {
+    setLoading(true);
+    const response = await fetch(`http://localhost:8000/api/strategies/${strategyId}/enable`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    const data = await response.json();
+    console.log('启用策略响应:', data);
+    
+    if (data.success) {
+      message.success('策略启用成功');
+      fetchStrategies(); // 刷新策略列表
+    } else {
+      message.error(`启用策略失败: ${data.msg || '未知错误'}`);
+    }
+  } catch (error) {
+    console.error('启用策略出错:', error);
+    message.error(`启用策略出错: ${error.message}`);
+  } finally {
+    setLoading(false);
+  }
+};
