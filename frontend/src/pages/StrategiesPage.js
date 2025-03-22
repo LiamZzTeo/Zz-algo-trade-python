@@ -25,6 +25,7 @@ function StrategiesPage() {
   const [codeValue, setCodeValue] = useState('');
   const [accountData, setAccountData] = useState({});
   const [positionsData, setPositionsData] = useState([]);
+  const [instruments, setInstruments] = useState([]);
 
   // 获取策略列表
   const fetchStrategies = async () => {
@@ -89,6 +90,55 @@ function StrategiesPage() {
     }
   };
 
+  // 添加获取可交易产品的函数
+  const fetchInstruments = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/api/instruments');
+      if (!response.ok) {
+        console.error('获取可交易产品失败:', response.status);
+        return;
+      }
+      
+      const data = await response.json();
+      if (data.success) {
+        setInstruments(data.data);
+        console.log(`获取到 ${data.data.length} 个交易品种`);
+      } else {
+        console.error('获取可交易产品失败:', data.msg);
+      }
+    } catch (error) {
+      console.error('获取可交易产品错误:', error);
+    }
+  };
+
+  // 启用策略的函数 - 移到组件内部
+  const enableStrategy = async (strategyId) => {
+    try {
+      setLoading(true);
+      const response = await fetch(`http://localhost:8000/api/strategies/${strategyId}/enable`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const data = await response.json();
+      console.log('启用策略响应:', data);
+      
+      if (data.success) {
+        message.success('策略启用成功');
+        fetchStrategies(); // 刷新策略列表
+      } else {
+        message.error(`启用策略失败: ${data.msg || '未知错误'}`);
+      }
+    } catch (error) {
+      console.error('启用策略出错:', error);
+      message.error(`启用策略出错: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // 定期刷新数据
   useEffect(() => {
     // 初始加载
@@ -96,6 +146,7 @@ function StrategiesPage() {
     fetchStrategyTypes();
     fetchAccountData();
     fetchPositionsData();
+    fetchInstruments();
 
     // 设置定时刷新
     const intervalId = setInterval(() => {
@@ -396,51 +447,6 @@ function StrategiesPage() {
   };
   
   // 根据参数类型渲染不同的输入控件
-  // 在 StrategiesPage 组件中添加状态
-  const [instruments, setInstruments] = useState([]);
-  
-  // 添加获取可交易产品的函数
-  const fetchInstruments = async () => {
-    try {
-      const response = await fetch('http://localhost:8000/api/instruments');
-      if (!response.ok) {
-        console.error('获取可交易产品失败:', response.status);
-        return;
-      }
-      
-      const data = await response.json();
-      if (data.success) {
-        setInstruments(data.data);
-        console.log(`获取到 ${data.data.length} 个交易品种`);
-      } else {
-        console.error('获取可交易产品失败:', data.msg);
-      }
-    } catch (error) {
-      console.error('获取可交易产品错误:', error);
-    }
-  };
-  
-  // 在 useEffect 中调用
-  useEffect(() => {
-    // 初始加载
-    fetchStrategies();
-    fetchStrategyTypes();
-    fetchAccountData();
-    fetchPositionsData();
-    fetchInstruments(); // 添加这一行
-  
-    // 设置定时刷新
-    const intervalId = setInterval(() => {
-      fetchStrategies();
-      fetchAccountData();
-      fetchPositionsData();
-    }, 10000); // 每10秒刷新一次
-  
-    // 组件卸载时清除定时器
-    return () => clearInterval(intervalId);
-  }, []);
-  
-  // 修改 renderParameterInput 函数中的交易品种选择部分
   const renderParameterInput = (key, value) => {
     const handleChange = (newValue) => {
       const currentParams = form.getFieldValue('parameters') || {};
@@ -517,8 +523,6 @@ function StrategiesPage() {
   // 渲染代码编辑器
   const renderCodeEditor = () => {
     // 如果没有安装 react-monaco-editor，使用普通文本框
-    // 注释提到未安装react-monaco-editor，但package.json中包含此依赖
-    // 可以考虑实际使用Monaco编辑器或移除此依赖
     return (
       <div className="code-editor-container">
         <TextArea
@@ -711,31 +715,3 @@ function StrategiesPage() {
 }
 
 export default StrategiesPage;
-
-// 在启用策略的函数中添加错误处理和日志
-const enableStrategy = async (strategyId) => {
-  try {
-    setLoading(true);
-    const response = await fetch(`http://localhost:8000/api/strategies/${strategyId}/enable`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    const data = await response.json();
-    console.log('启用策略响应:', data);
-    
-    if (data.success) {
-      message.success('策略启用成功');
-      fetchStrategies(); // 刷新策略列表
-    } else {
-      message.error(`启用策略失败: ${data.msg || '未知错误'}`);
-    }
-  } catch (error) {
-    console.error('启用策略出错:', error);
-    message.error(`启用策略出错: ${error.message}`);
-  } finally {
-    setLoading(false);
-  }
-};
