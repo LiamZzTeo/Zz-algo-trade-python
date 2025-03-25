@@ -1,4 +1,4 @@
-# 量化交易系统 - AlgoSysTest
+# 量化交易系统 - AlgoSysTest（Demo）
 
 AlgoSysTest 是一个功能完整的量化交易系统，支持多种交易策略的回测和实盘交易。系统基于 Python 和 React 构建，通过 OKX 交易所 API 实现交易功能。
 当前项目基于OKX交易所模拟交易API进行。
@@ -124,4 +124,3 @@ npm start
 如有问题或建议，请通过以下方式联系：
 
 - 邮箱：liam_zhang77@foxmail.com
-
