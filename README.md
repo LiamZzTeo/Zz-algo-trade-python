@@ -65,7 +65,7 @@ elif price_change < -threshold and has_position:
 
 ## 系统演示
 ![image](https://github.com/user-attachments/assets/b5bcc654-57c8-4c9c-8d8a-11563bbd9623)
-![image](https://github.com/user-attachments/assets/33cc9c11-5629-4582-bdf0-1da067a7c928)
+![image](https://github.com/user-attachments/assets/ce8cae7a-b628-4e38-b61b-ac2dee7cd491)
 ![image](https://github.com/user-attachments/assets/9f19d33d-e3a6-40d3-8ba0-4f36ebe627f2)
 ![image](https://github.com/user-attachments/assets/b362bab7-928b-410c-ae25-af51eb020601)
 ![image](https://github.com/user-attachments/assets/3d7b202d-d61f-460b-b854-3ea5674da08f)
