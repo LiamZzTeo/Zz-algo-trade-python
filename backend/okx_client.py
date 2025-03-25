@@ -10,9 +10,9 @@ from typing import Optional, Dict, Any
 class OKXClient:
     def __init__(self):
         # 从环境变量获取API凭证，如果环境变量不存在则使用默认值
-        self.api_key = os.environ.get("OKX_API_KEY", "d1478ccd-87bd-4901-a28b-11f446800d61")
-        self.secret_key = os.environ.get("OKX_SECRET_KEY", "70E057877E4B8A5348B7E0FD12097040")
-        self.passphrase = os.environ.get("OKX_PASSPHRASE", "Zhangzehang1234!!!")
+        self.api_key = os.environ.get("OKX_API_KEY", "a6423b67-7de4-4541-b8b6-0346ce615d29")
+        self.secret_key = os.environ.get("OKX_SECRET_KEY", "EB4E6DDF09A42FA30A7BA09362283AD6")
+        self.passphrase = os.environ.get("OKX_PASSPHRASE", "LiamZz77!!")
         self.base_url = os.environ.get("OKX_BASE_URL", "https://www.okx.com")
         self.is_test = os.environ.get("OKX_IS_TEST", "True").lower() == "true"
         self.debug = os.environ.get("OKX_DEBUG", "False").lower() == "true"
@@ -253,71 +253,51 @@ class OKXClient:
             return {"success": False, "data": [], "msg": str(e)}
 
     def get_instruments(self, inst_types=None):
-        """获取所有可交易产品
-        
-        Args:
-            inst_types: 产品类型列表，例如 ["SPOT", "SWAP", "FUTURES", "OPTION"]
-                       如果为 None，则获取所有类型
-        """
-        if inst_types is None:
-            inst_types = ["SPOT", "SWAP", "FUTURES", "OPTION"]
-        
-        all_instruments = []
-        
-        for inst_type in inst_types:
-            cache_key = f'instruments_{inst_type}'
-            cached_data = self._get_cached_data(cache_key)
-            
-            if cached_data and cached_data.get("success"):
-                all_instruments.extend(cached_data.get("data", []))
-                continue
-            
-            try:
-                endpoint = f"/api/v5/public/instruments?instType={inst_type}"
-                result = self._send_request("GET", endpoint)
+        """获取所有可交易品种"""
+        try:
+            if not inst_types:
+                inst_types = ["SWAP"]  # 默认只获取永续合约
                 
-                if result["success"]:
-                    self._set_cache(cache_key, result)
-                    all_instruments.extend(result.get("data", []))
+            all_instruments = []
+            for inst_type in inst_types:
+                # 使用正确的API路径
+                endpoint = f"/public/instruments?instType={inst_type}"
+                response = self._send_request("GET", endpoint)
+                
+                if response["success"]:
+                    all_instruments.extend(response["data"])
                 else:
-                    print(f"获取 {inst_type} 产品列表失败: {result.get('msg')}")
-            except Exception as e:
-                print(f"获取 {inst_type} 产品列表错误: {str(e)}")
-        
-        return {
-            "success": True,
-            "data": all_instruments,
-            "msg": f"获取到 {len(all_instruments)} 个交易产品"
-        }
+                    print(f"获取 {inst_type} 交易品种错误: {response['msg']}")
+                
+            return {"success": True, "data": all_instruments}
+        except Exception as e:
+            print(f"获取交易品种错误: {str(e)}")
+            return {"success": False, "data": [], "msg": str(e)}
 
+    # 删除重复的 get_market_data 方法，只保留这一个
     def get_market_data(self, symbol):
         """获取市场数据，包括最新价格、24小时涨跌幅等"""
-        cache_key = f'market_data_{symbol}'
-        cached_data = self._get_cached_data(cache_key)
-        if cached_data:
-            return cached_data
-        
         try:
             # 获取ticker数据
             ticker_data = self.get_ticker(symbol)
             
-            # 获取K线数据
-            kline_data = self.get_kline(symbol, "1m", 60)  # 获取1分钟K线，60条数据
+            if not ticker_data["success"]:
+                return ticker_data
+                
+            # 提取需要的数据
+            ticker = ticker_data.get("data", [{}])[0]
             
             market_data = {
                 "symbol": symbol,
-                "last": ticker_data.get("data", {}).get("last", "0"),
-                "open24h": ticker_data.get("data", {}).get("open24h", "0"),
-                "high24h": ticker_data.get("data", {}).get("high24h", "0"),
-                "low24h": ticker_data.get("data", {}).get("low24h", "0"),
-                "volCcy24h": ticker_data.get("data", {}).get("volCcy24h", "0"),
-                "change24h": ticker_data.get("data", {}).get("change24h", "0"),
-                "kline": kline_data.get("data", [])
+                "last": ticker.get("last", "0"),
+                "open24h": ticker.get("open24h", "0"),
+                "high24h": ticker.get("high24h", "0"),
+                "low24h": ticker.get("low24h", "0"),
+                "volCcy24h": ticker.get("volCcy24h", "0"),
+                "change24h": ticker.get("sodUtc0", "0"),  # 根据OKX API文档，这是24小时涨跌幅
             }
             
-            result = {"success": True, "data": market_data}
-            self._set_cache(cache_key, result)
-            return result
+            return {"success": True, "data": market_data}
         except Exception as e:
             print(f"获取市场数据错误: {str(e)}")
             return {"success": False, "data": {}, "msg": str(e)}
@@ -399,3 +379,61 @@ class OKXClient:
         except Exception as e:
             print(f"获取资产数据错误: {str(e)}")
             return {"success": False, "data": {}, "msg": str(e)}
+
+    def get_historical_candles(self, symbol, bar="1m", limit=300):
+        """
+        获取历史K线数据用于回测
+        
+        Args:
+            symbol: 交易对，如 BTC-USDT-SWAP
+            bar: K线周期，如 1m, 5m, 15m, 1H, 4H, 1D
+            limit: 获取数量，最大300条
+        
+        Returns:
+            包含K线数据的字典
+        """
+        cache_key = f'historical_candles_{symbol}_{bar}_{limit}'
+        cached_data = self._get_cached_data(cache_key)
+        if cached_data:
+            return cached_data
+        
+        try:
+            # 使用正确的API路径
+            endpoint = f"/market/candles?instId={symbol}&bar={bar}&limit={limit}"
+            result = self._send_request("GET", endpoint)
+            
+            if result["success"]:
+                # 处理数据格式，OKX返回的K线数据格式为:
+                # [时间戳, 开盘价, 最高价, 最低价, 收盘价, 成交量, 成交额]
+                candles = result.get("data", [])
+                formatted_candles = []
+                
+                for candle in candles:
+                    if len(candle) >= 7:
+                        formatted_candle = {
+                            "timestamp": int(candle[0]),
+                            "open": float(candle[1]),
+                            "high": float(candle[2]),
+                            "low": float(candle[3]),
+                            "close": float(candle[4]),
+                            "volume": float(candle[5]),
+                            "volume_currency": float(candle[6])
+                        }
+                        formatted_candles.append(formatted_candle)
+                
+                # 按时间戳排序，确保数据是按时间顺序的
+                formatted_candles.sort(key=lambda x: x["timestamp"])
+                
+                response = {
+                    "success": True,
+                    "data": formatted_candles,
+                    "msg": "success"
+                }
+                
+                self._set_cache(cache_key, response)
+                return response
+            
+            return result
+        except Exception as e:
+            print(f"获取历史K线数据错误: {str(e)}")
+            return {"success": False, "data": [], "msg": str(e)}

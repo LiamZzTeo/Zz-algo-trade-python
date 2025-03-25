@@ -20,7 +20,7 @@ def execute_strategy(market_data, positions, account, parameters, logger):
     # 获取当前价格
     current_price = float(market_data["last"])
     symbol = parameters.get("symbol", "BTC-USDT-SWAP")
-    position_size = parameters.get("position_size", 1)
+    position_size = parameters.get("position_size", 1)  # 这里的position_size已经是根据百分比计算的实际仓位大小
     
     # 检查是否有持仓
     has_position = False
@@ -35,7 +35,7 @@ def execute_strategy(market_data, positions, account, parameters, logger):
         return {
             "action": "buy",
             "symbol": symbol,
-            "size": str(position_size),
+            "size": position_size,
             "reason": f"价格 {current_price} 超过40000"
         }
     elif current_price < 35000 and has_position:
@@ -43,7 +43,7 @@ def execute_strategy(market_data, positions, account, parameters, logger):
         return {
             "action": "sell",
             "symbol": symbol,
-            "size": str(position_size),
+            "size": position_size,
             "reason": f"价格 {current_price} 低于35000"
         }
     

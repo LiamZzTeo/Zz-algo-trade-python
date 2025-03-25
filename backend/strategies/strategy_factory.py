@@ -58,7 +58,7 @@ class StrategyFactory:
                     "symbol": "BTC-USDT-SWAP",
                     "lookback_period": 5,
                     "threshold": 0.01,
-                    "position_size": 1
+                    "position_size_percent": 10  # 使用10%资金
                 }
             },
             {
@@ -70,7 +70,7 @@ class StrategyFactory:
                     "upper_price": 40000,
                     "lower_price": 30000,
                     "grid_num": 10,
-                    "position_size": 0.01
+                    "position_size_percent": 10  # 使用10%资金
                 }
             },
             {
@@ -81,7 +81,7 @@ class StrategyFactory:
                     "symbol": "BTC-USDT-SWAP",
                     "fast_period": 5,
                     "slow_period": 20,
-                    "position_size": 1
+                    "position_size_percent": 10  # 使用10%资金
                 }
             },
             {
@@ -91,7 +91,7 @@ class StrategyFactory:
                 "default_parameters": {
                     "symbol": "BTC-USDT-SWAP",
                     "code": "def execute_strategy(market_data, positions, account, parameters, logger):\n    # 在这里编写你的策略逻辑\n    return None",
-                    "position_size": 1
+                    "position_size_percent": 10  # 使用10%资金
                 }
             }
         ]

@@ -10,7 +10,9 @@ import time
 import os
 from typing import List, Dict
 from dotenv import load_dotenv
+from backtest_engine import BacktestEngine
 from pydantic import BaseModel
+from typing import Optional, Dict, Any, List
 
 # 加载环境变量
 load_dotenv()
@@ -18,6 +20,47 @@ load_dotenv()
 app = FastAPI()
 okx_client = OKXClient()
 strategy_engine = StrategyEngine(okx_client)
+
+# 初始化回测引擎 - 移到顶部
+backtest_engine = BacktestEngine(okx_client)
+
+# 回测请求模型 - 移到顶部
+from pydantic import BaseModel
+
+# 确保这个类定义在文件顶部
+class BacktestRequest(BaseModel):
+    strategy_id: str
+    symbol: str
+    bar: str = "1m"
+    initial_capital: float = 10000
+
+# 确保这个端点定义在 if __name__ == "__main__": 之前
+@app.post("/api/backtest")
+async def run_backtest(request: BacktestRequest):
+    """运行策略回测"""
+    try:
+        print(f"收到回测请求: {request}")
+        # 检查策略是否存在
+        if request.strategy_id not in strategy_engine.strategies:
+            return {"success": False, "msg": f"未找到ID为 {request.strategy_id} 的策略"}
+        
+        # 获取策略实例
+        strategy = strategy_engine.strategies[request.strategy_id]["instance"]
+        
+        # 运行回测
+        result = backtest_engine.run_backtest(
+            strategy=strategy,
+            symbol=request.symbol,
+            bar=request.bar,
+            initial_capital=request.initial_capital
+        )
+        
+        return result
+    except Exception as e:
+        print(f"回测错误: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return {"success": False, "msg": f"回测错误: {str(e)}"}
 
 # CORS配置
 app.add_middleware(
@@ -126,16 +169,6 @@ async def get_market_data(symbol: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# 添加获取所有可交易产品的API端点
-@app.get("/api/instruments")
-async def get_instruments():
-    """获取所有可交易产品"""
-    try:
-        instruments_data = okx_client.get_instruments()
-        return instruments_data
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
 # 添加获取资产数据的API端点 (别名)
 @app.get("/api/assets")
 async def get_assets():
@@ -152,51 +185,6 @@ class StrategyConfig(BaseModel):
     description: str = ""
     parameters: Dict = {}
     enabled: bool = False
-
-# 删除以下代码块
-# 示例策略函数
-def simple_ma_strategy(market_data, positions, account, config):
-    """
-    简单的移动平均线策略示例
-    """
-    if not market_data or "last" not in market_data:
-        return None
-        
-    current_price = float(market_data["last"])
-    fast_ma = config.get("fast_ma", 5)
-    slow_ma = config.get("slow_ma", 20)
-    
-    # 这里应该有更复杂的逻辑来计算移动平均线
-    # 简化示例，假设我们已经有了计算结果
-    fast_ma_value = current_price * 0.99  # 模拟值
-    slow_ma_value = current_price * 0.98  # 模拟值
-    
-    # 持仓检查
-    has_position = False
-    for pos in positions:
-        if pos["instId"] == config.get("symbol") and float(pos["pos"]) > 0:
-            has_position = True
-            break
-    
-    # 策略逻辑
-    if fast_ma_value > slow_ma_value and not has_position:
-        # 生成买入信号
-        return {
-            "action": "buy",
-            "symbol": config.get("symbol", "BTC-USDT-SWAP"),
-            "size": config.get("position_size", "1"),
-            "reason": "金叉信号"
-        }
-    elif fast_ma_value < slow_ma_value and has_position:
-        # 生成卖出信号
-        return {
-            "action": "sell",
-            "symbol": config.get("symbol", "BTC-USDT-SWAP"),
-            "size": config.get("position_size", "1"),
-            "reason": "死叉信号"
-        }
-    
-    return None
 
 async def update_data_periodically():
     """后台任务：定期更新数据"""

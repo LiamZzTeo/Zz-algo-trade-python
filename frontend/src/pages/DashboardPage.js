@@ -67,3 +67,32 @@ useEffect(() => {
     <div>24小时成交量: {marketData["BTC-USDT-SWAP"].volCcy24h}</div>
   </Card>
 )}
+
+// 修改市场行情的涨跌标志逻辑
+const renderPriceChange = (price, prevPrice) => {
+  if (!price || !prevPrice) return null;
+  
+  const change = ((price - prevPrice) / prevPrice) * 100;
+  const isPositive = change >= 0;
+  
+  return (
+    <span className={`price-change ${isPositive ? 'positive' : 'negative'}`}>
+      {isPositive ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
+      {Math.abs(change).toFixed(2)}%
+    </span>
+  );
+};
+
+// 在渲染市场数据的地方使用上面的函数
+{marketData.map((item, index) => (
+  <Card key={index} className="market-card">
+    <Statistic 
+      title={item.symbol}
+      value={parseFloat(item.last).toFixed(2)}
+      precision={2}
+      valueStyle={{ color: parseFloat(item.last) >= parseFloat(item.prevClose) ? '#3f8600' : '#cf1322' }}
+      prefix={parseFloat(item.last) >= parseFloat(item.prevClose) ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
+      suffix={renderPriceChange(parseFloat(item.last), parseFloat(item.prevClose))}
+    />
+  </Card>
+))}
